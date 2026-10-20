@@ -4,11 +4,29 @@ Public site (Nuxt 4) for the Open edX platform: course catalog, course pages
 with the "Comprar" button, events and contact. Learning happens in Open edX;
 payments are handled by the `openedx-course-payments` LMS plugin.
 
+## Project structure
+
+Feature-based, using [Nuxt layers](https://nuxt.com/docs/guide/going-further/layers):
+each folder in `layers/` is auto-registered and holds everything for one
+feature (pages, components, composables, utils, server routes, shared types).
+
+| Folder | Contents |
+|---|---|
+| `app/` | App shell: `app.vue`, default layout, home page, global CSS and `app.config.ts`. |
+| `layers/auth` | `useEdxUser`: the logged-in Open edX user, read from LMS cookies. |
+| `layers/courses` | Catalog and course pages, `CourseCard`, `/api/courses` routes, Open edX client (`server/utils/openedx.ts`), `CourseSummary`/`CourseDetail` types. |
+| `layers/events` | Events pages, `EventCard`, date helpers for Nuxt Content. |
+| `layers/contact` | `POST /api/contact`. |
+
+Auto-imports work across layers, so a feature can use another's components,
+composables and utils without imports. Event Markdown stays in `content/` with
+its collection in `content.config.ts`.
+
 ## How it connects to Open edX
 
 | Need | How |
 |---|---|
-| Course list and details | Nitro server routes (`server/api/courses`) call the LMS Course API and the plugin's price endpoint, cached 60 s. The browser never calls the LMS APIs directly, so no CORS. |
+| Course list and details | Nitro server routes (`layers/courses/server/api/courses`) call the LMS Course API and the plugin's price endpoint, cached 60 s. The browser never calls the LMS APIs directly, so no CORS. |
 | "Comprar" button | Plain link to `{LMS}/payments/buy/{course_id}/`. The LMS handles login, creates the order and redirects to Stripe (or into the course if already owned). |
 | Logged-in user in the header | Reads the `edxloggedin` / `edx-user-info` cookies the LMS sets on the parent domain (`useEdxUser`). The site must be on a subdomain of the LMS cookie domain. |
 | Login / logout | Links to the LMS with `?next=` / `?redirect_url=` back to this site (the plugin's Tutor config whitelists it). |
@@ -60,4 +78,4 @@ Defaults in `nuxt.config.ts` target the Tutor dev stack. Override per environmen
 
 ## Pending
 
-- Contact form only logs messages (`server/api/contact.post.ts`); connect an e-mail provider.
+- Contact form only logs messages (`layers/contact/server/api/contact.post.ts`); connect an e-mail provider.
