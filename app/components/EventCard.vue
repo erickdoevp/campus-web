@@ -29,7 +29,7 @@ defineProps<{
 }
 
 .event-card:hover {
-  box-shadow: var(--shadow);
+  box-shadow: var(--brand-shadow);
 }
 
 .date {
@@ -40,9 +40,9 @@ defineProps<{
   justify-content: center;
   width: 64px;
   height: 72px;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  border-radius: var(--brand-radius-sm);
+  background: var(--ui-color-primary-100);
+  color: var(--ui-primary);
 }
 
 .day {

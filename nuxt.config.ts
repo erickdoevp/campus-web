@@ -2,18 +2,18 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  modules: ['@nuxt/content'],
+  modules: ['@nuxt/ui', '@nuxt/content'],
   css: ['~/assets/css/main.css'],
+
+  ui: {
+    // Light only for now: the brand palette has not been tuned for dark mode.
+    colorMode: false,
+  },
 
   app: {
     head: {
       htmlAttrs: { lang: 'es-MX' },
       titleTemplate: '%s · Campus',
-      link: [
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' },
-      ],
     },
   },
 
