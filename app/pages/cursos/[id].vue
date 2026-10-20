@@ -18,6 +18,28 @@ useSeoMeta({
 // If the user already owns the course it sends them straight into it.
 const buyUrl = `${config.public.lmsUrl}/payments/buy/${encodeURIComponent(id)}/`
 const cancelled = computed(() => route.query.payment === 'cancelled')
+
+const user = useEdxUser()
+const { data: ownership, refresh: refreshOwnership } = await useFetch(`/api/courses/${encodeURIComponent(id)}/owned`, {
+  immediate: !!user.value,
+  default: () => ({ owned: false }),
+})
+const owned = computed(() => !!user.value && ownership.value.owned)
+
+// Stripe redirects here right after paying, but access is granted by the
+// webhook, which may land a few seconds later: keep checking for a while.
+const paid = computed(() => route.query.payment === 'success')
+const confirming = ref(false)
+onMounted(async () => {
+  if (!paid.value || !user.value || owned.value) return
+  confirming.value = true
+  for (let attempt = 0; attempt < 15 && !owned.value; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    await refreshOwnership()
+  }
+  confirming.value = false
+})
+const courseUrl = `${config.public.learningMfeUrl}/course/${encodeURIComponent(id)}/home`
 </script>
 
 <template>
@@ -42,7 +64,20 @@ const cancelled = computed(() => route.query.payment === 'cancelled')
             <div v-if="cancelled" class="notice notice-warning">
               El pago se canceló. Puedes intentarlo de nuevo cuando quieras.
             </div>
-            <template v-if="course.purchasable">
+            <div v-if="paid && owned" class="notice notice-success">
+              ¡Gracias por tu compra! Ya puedes empezar el curso.
+            </div>
+            <div v-else-if="paid && confirming" class="notice notice-info">
+              Pago recibido. Estamos activando tu acceso…
+            </div>
+            <div v-else-if="paid" class="notice notice-info">
+              Pago recibido. Tu acceso puede tardar unos minutos en activarse; recarga la página en un momento.
+            </div>
+            <template v-if="owned">
+              <p class="muted">Ya tienes acceso a este curso.</p>
+              <a :href="courseUrl" class="btn btn-primary buy">Ir al curso</a>
+            </template>
+            <template v-else-if="course.purchasable">
               <p class="price">{{ formatPrice(course.price, course.currency) }}</p>
               <p class="muted small">Pago único · acceso de por vida</p>
               <a :href="buyUrl" class="btn btn-primary buy">Comprar curso</a>
