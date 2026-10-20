@@ -26,7 +26,6 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
         <nav id="main-nav" class="nav" :class="{ open: menuOpen }">
           <NuxtLink to="/cursos">Cursos</NuxtLink>
           <NuxtLink to="/eventos">Eventos</NuxtLink>
-          <NuxtLink to="/contacto">Contacto</NuxtLink>
 
           <div class="nav-account">
             <template v-if="user">
@@ -58,7 +57,6 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
         <nav class="footer-nav">
           <NuxtLink to="/cursos">Cursos</NuxtLink>
           <NuxtLink to="/eventos">Eventos</NuxtLink>
-          <NuxtLink to="/contacto">Contacto</NuxtLink>
         </nav>
       </div>
     </footer>
@@ -80,9 +78,9 @@ main {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgb(250 250 247 / 92%);
+  background: color-mix(in srgb, var(--ui-bg-muted) 92%, transparent);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .header-inner {
@@ -97,7 +95,7 @@ main {
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--color-text);
+  color: var(--ui-text-highlighted);
   text-decoration: none;
 }
 
@@ -106,13 +104,13 @@ main {
 }
 
 .nav a {
-  color: var(--color-text);
+  color: var(--ui-text-highlighted);
   text-decoration: none;
   font-weight: 500;
 }
 
 .nav > a.router-link-active {
-  color: var(--color-primary);
+  color: var(--ui-primary);
 }
 
 .nav.open {
@@ -124,8 +122,8 @@ main {
   left: 0;
   right: 0;
   padding: 20px 16px 24px;
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--ui-bg-muted);
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .nav-account {
@@ -140,7 +138,7 @@ main {
 }
 
 .nav-account .btn-primary {
-  color: #fff;
+  color: var(--ui-text-inverted);
 }
 
 .account-link {
@@ -149,9 +147,9 @@ main {
 
 .menu-toggle {
   padding: 8px 14px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--ui-border);
   border-radius: 999px;
-  background: var(--color-surface);
+  background: var(--ui-bg);
   font: inherit;
   font-weight: 500;
   cursor: pointer;
@@ -181,7 +179,7 @@ main {
 
 .site-footer {
   margin-top: 56px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--ui-border);
   padding: 40px 0;
 }
 
@@ -202,7 +200,7 @@ main {
 }
 
 .footer-nav a {
-  color: var(--color-muted);
+  color: var(--ui-text-muted);
   text-decoration: none;
 }
 </style>

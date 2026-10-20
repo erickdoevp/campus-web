@@ -1,61 +1,107 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/*
+ * Theme palettes, taken from mccorp.com.mx. Nuxt UI maps them to its
+ * primary / neutral colors in app.config.ts and derives every --ui-* token
+ * (text, backgrounds, borders) from them.
+ */
+@theme static {
+  /* Inter is self-hosted by @nuxt/fonts, which Nuxt UI installs. */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* 500 = MCCorp primary blue, 600 = its hover / dark blue. */
+  --color-brand-50: #f0f5fe;
+  --color-brand-100: #e6effb;
+  --color-brand-200: #c8dcf8;
+  --color-brand-300: #9cc0f2;
+  --color-brand-400: #5f97e8;
+  --color-brand-500: #0f5dd8;
+  --color-brand-600: #024db3;
+  --color-brand-700: #033f91;
+  --color-brand-800: #083676;
+  --color-brand-900: #0c2f62;
+  --color-brand-950: #091d40;
+
+  /* MCCorp's cool grays: 50 page background, 500 muted text, 800 headings. */
+  --color-graphite-50: #f7f7f7;
+  --color-graphite-100: #eeeff0;
+  --color-graphite-200: #dfe2e4;
+  --color-graphite-300: #c6c9cb;
+  --color-graphite-400: #9ea2a7;
+  --color-graphite-500: #6f7071;
+  --color-graphite-600: #55585a;
+  --color-graphite-700: #3d4042;
+  --color-graphite-800: #262828;
+  --color-graphite-900: #171819;
+  --color-graphite-950: #0d0e0e;
+}
+
 :root {
-  --color-bg: #fafaf7;
-  --color-surface: #ffffff;
-  --color-text: #1c1d21;
-  --color-muted: #5e6170;
-  --color-border: #e4e3dc;
-  --color-primary: #1f3fbf;
-  --color-primary-hover: #17309a;
-  --color-primary-soft: #e8ecfb;
-  --color-accent: #e8603c;
-  --color-success-soft: #e5f4ea;
-  --color-success: #1d6b3a;
-  --color-warning-soft: #fdf2dc;
-  --color-warning: #7a5208;
+  --ui-text-highlighted: var(--ui-color-neutral-800);
+  --ui-radius: 0.375rem;
+  --ui-container: 1120px;
 
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 1px 2px rgb(16 18 27 / 6%), 0 4px 16px rgb(16 18 27 / 6%);
-  --content-width: 1120px;
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Brand extras with no Nuxt UI equivalent. */
+  /* Decorative only (gradients, glows): too light for small text on white. */
+  --brand-accent: #057cd8;
+  --gradient-brand: linear-gradient(180deg, #014db3 0%, #057cd8 100%);
+  --brand-radius: 12px;
+  --brand-radius-sm: 8px;
+  --brand-shadow: 0 1px 2px rgb(38 40 40 / 6%), 0 4px 16px rgb(38 40 40 / 6%);
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/* Element defaults live in the base layer so Nuxt UI's utilities can override them. */
+@layer base {
+  body {
+    overflow-x: clip;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ui-text-highlighted);
+    background: var(--ui-bg-muted);
+    -webkit-font-smoothing: antialiased;
+  }
 
-body {
-  margin: 0;
-  overflow-x: clip;
-  font-family: var(--font);
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--color-text);
-  background: var(--color-bg);
-  -webkit-font-smoothing: antialiased;
-}
+  a {
+    color: var(--ui-primary);
+  }
 
-img {
-  max-width: 100%;
-  display: block;
-}
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+  }
 
-a {
-  color: var(--color-primary);
-}
+  input,
+  textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--brand-radius-sm);
+    font: inherit;
+    background: var(--ui-bg);
+  }
 
-h1,
-h2,
-h3 {
-  line-height: 1.2;
-  letter-spacing: -0.015em;
+  input:focus,
+  textarea:focus {
+    outline: 2px solid var(--ui-primary);
+    outline-offset: 1px;
+    border-color: transparent;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
 }
 
 .container {
   width: 100%;
-  max-width: var(--content-width);
+  max-width: var(--ui-container);
   margin: 0 auto;
   padding: 0 16px;
 }
@@ -91,11 +137,11 @@ h3 {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-accent);
+  color: var(--ui-primary);
 }
 
 .muted {
-  color: var(--color-muted);
+  color: var(--ui-text-muted);
 }
 
 .btn {
@@ -114,39 +160,39 @@ h3 {
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--ui-primary);
+  color: var(--ui-text-inverted);
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-hover);
+  background: var(--ui-color-primary-600);
 }
 
 .btn-secondary {
-  background: var(--color-surface);
-  border-color: var(--color-border);
-  color: var(--color-text);
+  background: var(--ui-bg);
+  border-color: var(--ui-border);
+  color: var(--ui-text-highlighted);
 }
 
 .btn-secondary:hover {
-  border-color: var(--color-text);
+  border-color: var(--ui-text-highlighted);
 }
 
-.grid {
+.card-grid {
   display: grid;
   gap: 24px;
   grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
 }
 
-.grid > *,
+.card-grid > *,
 .hero-grid > * {
   min-width: 0;
 }
 
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--brand-radius);
   overflow: hidden;
 }
 
@@ -156,34 +202,65 @@ h3 {
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--ui-color-primary-100);
+  color: var(--ui-primary);
 }
 
 .notice {
   padding: 14px 18px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--brand-radius-sm);
   margin-bottom: 24px;
 }
 
 .notice-warning {
-  background: var(--color-warning-soft);
-  color: var(--color-warning);
+  background: var(--ui-color-warning-50);
+  color: var(--ui-color-warning-800);
 }
 
 .notice-success {
-  background: var(--color-success-soft);
-  color: var(--color-success);
+  background: var(--ui-color-success-50);
+  color: var(--ui-color-success-800);
 }
 
 .notice-info {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--ui-color-primary-100);
+  color: var(--ui-primary);
 }
 
 .prose {
   max-width: 72ch;
   overflow-wrap: break-word;
+}
+
+/* Preflight zeroes these; restore document flow for authored content. */
+.prose :where(p, ul, ol, table) {
+  margin-block: 1em;
+}
+
+.prose :where(ul, ol) {
+  padding-left: 1.5em;
+}
+
+.prose :where(ul) {
+  list-style: disc;
+}
+
+.prose :where(ol) {
+  list-style: decimal;
+}
+
+.prose :where(h2) {
+  margin: 1.6em 0 0.6em;
+  font-size: 1.5rem;
+}
+
+.prose :where(h3) {
+  margin: 1.4em 0 0.5em;
+  font-size: 1.15rem;
+}
+
+.prose :where(a) {
+  text-decoration: underline;
 }
 
 .prose img,
@@ -211,28 +288,47 @@ h3 {
 .prose td {
   text-align: left;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--ui-border);
 }
 
-input,
-textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font: inherit;
-  background: var(--color-surface);
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-input:focus,
-textarea:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-  border-color: transparent;
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  text-decoration: none;
 }
 
-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 6px;
+.back-link:hover {
+  color: var(--ui-text-highlighted);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+/* Entry motion for page content; skipped entirely for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
