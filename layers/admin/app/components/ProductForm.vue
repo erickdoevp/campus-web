@@ -129,6 +129,7 @@ watch(() => props.errors, async (errors) => {
       <div class="field">
         <label for="description">Descripción</label>
         <textarea id="description" v-model="form.description" rows="8" />
+        <p class="hint muted">Aparece en la página del curso en Campus. Separa los párrafos con una línea en blanco.</p>
       </div>
     </fieldset>
 

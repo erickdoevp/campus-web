@@ -41,6 +41,8 @@ onMounted(async () => {
 })
 const courseUrl = `${config.public.learningMfeUrl}/course/${encodeURIComponent(id)}/home`
 
+const paragraphs = computed(() => course.value!.description.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean))
+
 const facts = computed(() => [
   { label: 'Modalidad', value: course.value!.pacing === 'self' ? 'A tu ritmo' : 'Con fechas del instructor' },
   { label: 'Inicio', value: course.value!.startDisplay },
@@ -107,16 +109,18 @@ const showBuyBar = computed(() => !cardVisible.value && !owned.value && course.v
             <p class="muted note">Si ya lo compraste, te llevaremos directo al curso.</p>
           </template>
           <template v-else>
-            <p class="price soon">Próximamente</p>
-            <p class="muted terms">Este curso todavía no está a la venta.</p>
+            <p class="price soon">No disponible</p>
+            <p class="muted terms">Este curso ya no está a la venta.</p>
           </template>
         </div>
       </div>
     </aside>
 
-    <!-- Overview HTML is authored by staff in Studio. -->
-    <section v-if="course.overview" class="overview">
-      <div class="prose" v-html="course.overview" />
+    <!-- Plain text from the CMS, so no HTML is injected into the page. -->
+    <section v-if="paragraphs.length" class="overview">
+      <div class="prose">
+        <p v-for="(paragraph, i) in paragraphs" :key="i">{{ paragraph }}</p>
+      </div>
     </section>
 
     <Transition name="bar">
@@ -277,6 +281,11 @@ h1 {
 
 .overview {
   padding: 40px 0 24px;
+}
+
+/* Single line breaks typed in the CMS are kept. */
+.overview p {
+  white-space: pre-line;
 }
 
 @media (min-width: 960px) {

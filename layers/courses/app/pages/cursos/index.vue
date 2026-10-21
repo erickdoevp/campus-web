@@ -25,6 +25,8 @@ const filtered = computed(() => {
   })
 })
 
+const total = computed(() => courses.value?.length ?? 0)
+
 // The first course gets a wide card only on the unfiltered catalog.
 const isFiltering = computed(() => !!search.value.trim() || pacing.value !== 'all')
 const showFeatured = computed(() => !isFiltering.value && filtered.value.length > 2)
@@ -62,8 +64,8 @@ function resetFilters() {
     </div>
 
     <p class="count muted" aria-live="polite">
-      <template v-if="isFiltering">{{ filtered.length }} de {{ courses?.length ?? 0 }} cursos</template>
-      <template v-else>{{ courses?.length ?? 0 }} cursos disponibles</template>
+      <template v-if="isFiltering">{{ filtered.length }} de {{ total }} {{ total === 1 ? 'curso' : 'cursos' }}</template>
+      <template v-else>{{ total }} {{ total === 1 ? 'curso disponible' : 'cursos disponibles' }}</template>
     </p>
 
     <div v-if="status === 'pending'" class="card-grid" aria-busy="true">

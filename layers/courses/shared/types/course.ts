@@ -14,8 +14,8 @@ export interface CourseSummary {
 }
 
 export interface CourseDetail extends CourseSummary {
-  /** HTML authored in Studio ("About" page). */
-  overview: string
+  /** Plain text written by the accountant in the CMS; blank lines separate paragraphs. */
+  description: string
   effort: string | null
   end: string | null
 }

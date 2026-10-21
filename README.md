@@ -1,8 +1,9 @@
 # campus-web
 
 Public site (Nuxt 4) for the Open edX platform: course catalog, course pages
-with the "Comprar" button, events and contact. Learning happens in Open edX;
-payments are handled by the `openedx-course-payments` LMS plugin.
+with the "Comprar" button, events, contact and the accountants' admin area.
+Learning happens in Open edX; courses for sale come from the Campus CMS
+(`campus-cms`); payments are handled by the `openedx-course-payments` LMS plugin.
 
 ## Project structure
 
@@ -14,7 +15,7 @@ feature (pages, components, composables, utils, server routes, shared types).
 |---|---|
 | `app/` | App shell: `app.vue`, default layout, home page, global CSS and `app.config.ts`. |
 | `layers/auth` | `useEdxUser`: the logged-in Open edX user, read from LMS cookies. |
-| `layers/courses` | Catalog and course pages, `CourseCard`, `/api/courses` routes, Open edX client (`server/utils/openedx.ts`), `CourseSummary`/`CourseDetail` types. |
+| `layers/courses` | Catalog and course pages, `CourseCard`, `/api/courses` routes, catalog client (`server/utils/catalog.ts`: CMS + LMS), `CourseSummary`/`CourseDetail` types. |
 | `layers/events` | Events pages, `EventCard`, date helpers for Nuxt Content. |
 | `layers/contact` | `POST /api/contact`. |
 | `layers/admin` | Admin area for contadores (`/admin`): courses, prices and sale status, backed by the Campus CMS through `/api/admin/*`. |
@@ -27,7 +28,7 @@ its collection in `content.config.ts`.
 
 | Need | How |
 |---|---|
-| Course list and details | Nitro server routes (`layers/courses/server/api/courses`) call the LMS Course API and the plugin's price endpoint, cached 60 s. The browser never calls the LMS APIs directly, so no CORS. |
+| Course list and details | Nitro server routes (`layers/courses/server/api/courses`), cached 60 s, join two sources: the CMS public catalog (which courses are on sale, title, descriptions, image, price) and the LMS Course API (dates, pacing, effort, owned by Studio). Only CMS courses on sale are listed; archived ones keep their page, marked as no longer for sale. Changes made in `/admin` clear that cache right away. The browser never calls these APIs directly, so no CORS. |
 | "Comprar" button | Plain link to `{LMS}/payments/buy/{course_id}/`. The LMS handles login, creates the order and redirects to Stripe (or into the course if already owned). |
 | Logged-in user in the header | Reads the `edxloggedin` / `edx-user-info` cookies the LMS sets on the parent domain (`useEdxUser`). The site must be on a subdomain of the LMS cookie domain. |
 | Login / logout | Links to the LMS with `?next=` / `?redirect_url=` back to this site (the plugin's Tutor config whitelists it). |

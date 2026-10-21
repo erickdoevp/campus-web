@@ -29,6 +29,11 @@ export default defineEventHandler(async (event) => {
     body: method === 'GET' || method === 'HEAD' ? undefined : await readRawBody(event, false),
   })
 
+  if (response.ok && method !== 'GET' && method !== 'HEAD' && path.startsWith('products')) {
+    // Price, image, copy or sale status may have changed: the catalog must not wait for its cache.
+    await invalidateCatalogCache()
+  }
+
   setResponseStatus(event, response.status)
   if (response.status === 204) return null
   const text = await response.text()
