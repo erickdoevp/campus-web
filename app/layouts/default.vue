@@ -8,6 +8,9 @@ const loginUrl = computed(() => `${config.public.lmsUrl}/login?next=${encodeURIC
 const registerUrl = computed(() => `${config.public.lmsUrl}/register?next=${encodeURIComponent(requestUrl.href)}`)
 const logoutUrl = computed(() => user.value && `${user.value.header_urls.logout}?redirect_url=${encodeURIComponent(requestUrl.origin + '/')}`)
 
+// Contadores get a link to the admin area. Asked only for logged-in users, in the browser.
+const { data: cmsMe } = useLazyFetch<CmsMe>('/api/admin/me', { server: false, immediate: !!user.value })
+
 const menuOpen = ref(false)
 const route = useRoute()
 watch(() => route.fullPath, () => { menuOpen.value = false })
@@ -29,6 +32,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
 
           <div class="nav-account">
             <template v-if="user">
+              <NuxtLink v-if="cmsMe?.is_contador" to="/admin" class="account-link">Administración</NuxtLink>
               <a :href="config.public.learnerDashboardUrl" class="btn btn-secondary">Mis cursos</a>
               <a :href="user.header_urls.account_settings" class="account-link" :title="user.email">
                 {{ user.username }}

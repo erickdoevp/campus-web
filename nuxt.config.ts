@@ -22,9 +22,12 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Used by the Nuxt server to call Open edX APIs.
     openedxLmsUrl: 'http://local.openedx.io:8000',
+    // Campus CMS (courses, prices, sales), called by the admin area's server routes.
+    campusCmsUrl: 'http://campus-cms.local.openedx.io:8010',
     public: {
       // Used in links the browser follows.
       lmsUrl: 'http://local.openedx.io:8000',
+      studioUrl: 'http://studio.local.openedx.io:8001',
       learnerDashboardUrl: 'http://apps.local.openedx.io:1996/learner-dashboard/',
       learningMfeUrl: 'http://apps.local.openedx.io:2000/learning',
     },

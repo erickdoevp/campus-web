@@ -17,6 +17,7 @@ feature (pages, components, composables, utils, server routes, shared types).
 | `layers/courses` | Catalog and course pages, `CourseCard`, `/api/courses` routes, Open edX client (`server/utils/openedx.ts`), `CourseSummary`/`CourseDetail` types. |
 | `layers/events` | Events pages, `EventCard`, date helpers for Nuxt Content. |
 | `layers/contact` | `POST /api/contact`. |
+| `layers/admin` | Admin area for contadores (`/admin`): courses, prices and sale status, backed by the Campus CMS through `/api/admin/*`. |
 
 Auto-imports work across layers, so a feature can use another's components,
 composables and utils without imports. Event Markdown stays in `content/` with
@@ -32,9 +33,29 @@ its collection in `content.config.ts`.
 | Login / logout | Links to the LMS with `?next=` / `?redirect_url=` back to this site (the plugin's Tutor config whitelists it). |
 | LMS course "About" pages | The plugin redirects them here (`/cursos/{course_id}`). |
 
+## Admin area (`/admin`)
+
+For contadores: create courses, set their price and image, create them in
+Open edX and put them on sale. The data lives in the Campus CMS (`campus-cms`);
+the browser only talks to this site.
+
+| Piece | What it does |
+|---|---|
+| `server/api/admin/[...path].ts` | Proxies `/api/admin/*` to the CMS `/api/v1/*` (only the routes the admin uses), sending the user's LMS JWT as `Authorization: JWT …`, joined from the `edx-jwt-cookie-header-payload` + `edx-jwt-cookie-signature` cookies. Writes must come from this site's `Origin`. |
+| `server/middleware/edx-jwt.ts` | The JWT cookies last an hour, the LMS session longer: on `/admin` and `/api/admin` requests without them, it calls the LMS `POST /login_refresh` with the session cookie and passes the new cookies on. |
+| `app/middleware/admin.ts` | Anonymous users go to the LMS login and come back; users without the Contador role get a 403. The CMS checks the role on every call too. |
+
+The role is given in the CMS:
+`make tutor ARGS="dev exec campus-cms python manage.py contador <username>"`.
+Contadores see an "Administración" link in the site header.
+
+Behind a reverse proxy in production, configure it so `getRequestURL()` sees
+the public host (the `Origin` check compares against it).
+
 ## Development
 
-Requires the Tutor dev stack running (`tutor dev start -d`) and Node >= 22.5.
+Requires the Tutor dev stack running (`tutor dev start -d`, which also runs the
+CMS for the admin area) and Node >= 22.5.
 
 ```bash
 npm install
