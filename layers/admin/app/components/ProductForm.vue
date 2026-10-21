@@ -56,7 +56,8 @@ const toInput: { [K in keyof FormState]: (value: FormState[K]) => ProductInput[k
   title: v => v.trim(),
   number: v => v.trim(),
   run: v => v.trim(),
-  price: v => (v.trim() === '' ? null : v.trim()),
+  // v-model on <input type="number"> hands back a number once edited.
+  price: v => (String(v).trim() === '' ? null : String(v).trim()),
   short_description: v => v.trim(),
   description: v => v,
   start: v => fromLocalInput(v),
@@ -68,7 +69,7 @@ const toInput: { [K in keyof FormState]: (value: FormState[K]) => ProductInput[k
 function submit() {
   const input: Record<string, unknown> = {}
   for (const key of Object.keys(toInput) as (keyof FormState)[]) {
-    if (!props.product || form[key] !== initial.value[key]) {
+    if (!props.product || String(form[key]) !== initial.value[key]) {
       input[key] = (toInput[key] as (value: string) => unknown)(form[key])
     }
   }
@@ -76,10 +77,20 @@ function submit() {
 }
 
 const fieldError = (name: string) => props.errors?.fields[name]
+
+// Saving may happen far below the first problem: bring it into view.
+const formEl = ref<HTMLFormElement>()
+watch(() => props.errors, async (errors) => {
+  if (!errors) return
+  await nextTick()
+  const target = formEl.value?.querySelector<HTMLElement>('[aria-invalid="true"], [role="alert"]')
+  target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  if (target?.matches('input, textarea')) target.focus({ preventScroll: true })
+})
 </script>
 
 <template>
-  <form class="product-form" novalidate @submit.prevent="submit">
+  <form ref="formEl" class="product-form" novalidate @submit.prevent="submit">
     <div v-if="errors?.general" class="notice notice-warning" role="alert">{{ errors.general }}</div>
 
     <fieldset>
@@ -169,7 +180,7 @@ const fieldError = (name: string) => props.errors?.fields[name]
           <p v-if="fieldError('end')" class="error">{{ fieldError('end') }}</p>
         </div>
       </div>
-      <p class="hint muted">Sin fecha de fin, el acceso es de por vida.</p>
+      <p class="hint muted">Hora del centro de México. Sin fecha de fin, el acceso es de por vida.</p>
 
       <div class="field" role="radiogroup" aria-labelledby="pacing-label">
         <span id="pacing-label" class="label">Modalidad</span>

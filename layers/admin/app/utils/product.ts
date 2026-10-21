@@ -5,21 +5,35 @@ export const PRODUCT_STATUS: Record<ProductStatus, { label: string, hint: string
   archived: { label: 'Archivado', hint: 'Ya no se vende. Quienes lo compraron conservan el acceso.' },
 }
 
-/** ISO date from the CMS → value for <input type="datetime-local"> (browser time zone). */
+// Course dates are entered and shown in Mexico City time, wherever the page
+// renders (server or browser), like the rest of the site (see events' formatDate).
+const TIME_ZONE = 'America/Mexico_City'
+
+/** Offset of TIME_ZONE at that instant, in minutes (e.g. -360). */
+function zoneOffset(date: Date) {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, timeZoneName: 'longOffset' })
+    .formatToParts(date).find(part => part.type === 'timeZoneName')!.value // "GMT-06:00", or "GMT"
+  const match = name.match(/([+-])(\d{2}):(\d{2})/)
+  return match ? (match[1] === '-' ? -1 : 1) * (Number(match[2]) * 60 + Number(match[3])) : 0
+}
+
+/** ISO date from the CMS → value for <input type="datetime-local">. */
 export function toLocalInput(iso: string | null) {
   if (!iso) return ''
   const date = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return new Date(date.getTime() + zoneOffset(date) * 60_000).toISOString().slice(0, 16)
 }
 
+/** Value of <input type="datetime-local"> → ISO date for the CMS. */
 export function fromLocalInput(value: string) {
-  return value ? new Date(value).toISOString() : null
+  if (!value) return null
+  const asUtc = new Date(`${value}:00Z`)
+  return new Date(asUtc.getTime() - zoneOffset(asUtc) * 60_000).toISOString()
 }
 
-export function formatDate(iso: string | null) {
-  if (!iso) return ''
-  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
+/** Same as formatDate() (events layer), with the time. */
+export function formatDateTime(iso: string) {
+  return formatDate(iso, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 export interface CmsErrors {

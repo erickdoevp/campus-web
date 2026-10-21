@@ -64,7 +64,7 @@ const price = (product: Product) => (product.price != null ? formatPrice(Number(
           </div>
           <ProductStatusBadge :status="product.status" />
           <p class="price">{{ price(product) }}</p>
-          <p class="updated muted">{{ formatDate(product.modified) }}</p>
+          <p class="updated muted">{{ formatDateTime(product.modified) }}</p>
         </NuxtLink>
       </li>
     </ul>

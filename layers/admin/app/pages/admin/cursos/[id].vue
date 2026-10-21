@@ -171,13 +171,13 @@ const publicUrl = computed(() => p.value.status === 'on_sale' && p.value.course_
           </template>
 
           <!-- created -->
-          <button v-if="p.status === 'created'" type="button" class="btn btn-primary" :disabled="!ready || !!running"
+          <button v-if="p.status === 'created' && confirming !== 'archive'" type="button" class="btn btn-primary" :disabled="!ready || !!running"
                   @click="run('put-on-sale')">
             {{ running === 'put-on-sale' ? 'Publicando…' : 'Poner a la venta' }}
           </button>
 
           <!-- on sale -->
-          <button v-if="p.status === 'on_sale'" type="button" class="btn btn-secondary" :disabled="!!running"
+          <button v-if="p.status === 'on_sale' && confirming !== 'archive'" type="button" class="btn btn-secondary" :disabled="!!running"
                   @click="run('withdraw')">
             {{ running === 'withdraw' ? 'Retirando…' : 'Retirar de la venta' }}
           </button>
