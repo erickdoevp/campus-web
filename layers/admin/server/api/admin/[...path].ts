@@ -2,7 +2,7 @@
  * /api/admin/* → CMS /api/v1/*, as the logged-in user. Only the CMS routes the
  * admin uses are forwarded; status codes and error bodies pass through as-is.
  */
-const ALLOWED = /^(me|products(\/\d+(\/(image|create-course|put-on-sale|withdraw|archive))?)?)$/
+const ALLOWED = /^(me|stats|products(\/\d+(\/(image|create-course|put-on-sale|withdraw|archive))?)?|orders(\/\d+(\/retry-access)?)?)$/
 
 export default defineEventHandler(async (event) => {
   const path = getRouterParam(event, 'path') ?? ''

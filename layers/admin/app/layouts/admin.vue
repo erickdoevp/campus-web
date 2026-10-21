@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const me = useCmsMe()
+const route = useRoute()
 </script>
 
 <template>
@@ -8,7 +9,9 @@ const me = useCmsMe()
       <div class="container header-inner">
         <NuxtLink to="/admin" class="logo">Campus <span class="tag">Administración</span></NuxtLink>
         <nav class="nav">
-          <NuxtLink to="/admin" class="nav-link">Cursos</NuxtLink>
+          <NuxtLink to="/admin" class="nav-link" :class="{ active: route.path === '/admin' }">Resumen</NuxtLink>
+          <NuxtLink to="/admin/cursos" class="nav-link" :class="{ active: route.path.startsWith('/admin/cursos') }">Cursos</NuxtLink>
+          <NuxtLink to="/admin/ventas" class="nav-link" :class="{ active: route.path.startsWith('/admin/ventas') }">Ventas</NuxtLink>
           <NuxtLink to="/" class="nav-link muted">Ver sitio</NuxtLink>
           <span v-if="me" class="user" :title="me.email">{{ me.username }}</span>
         </nav>
@@ -85,7 +88,7 @@ main {
   text-decoration: none;
 }
 
-.nav-link.router-link-exact-active {
+.nav-link.active {
   color: var(--ui-primary);
 }
 

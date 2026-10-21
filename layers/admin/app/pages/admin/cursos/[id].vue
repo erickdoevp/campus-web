@@ -67,7 +67,7 @@ async function run(action: Action) {
   try {
     if (action === 'delete') {
       await $fetch(`/api/admin/products/${id}`, { method: 'DELETE' })
-      await navigateTo('/admin')
+      await navigateTo('/admin/cursos')
       return
     }
     product.value = await $fetch<Product>(`/api/admin/products/${id}/${action}`, { method: 'POST' })
@@ -109,7 +109,7 @@ const publicUrl = computed(() => p.value.status === 'on_sale' && p.value.course_
 
 <template>
   <div v-if="product" class="section container">
-    <NuxtLink to="/admin" class="back-link">← Cursos</NuxtLink>
+    <NuxtLink to="/admin/cursos" class="back-link">← Cursos</NuxtLink>
 
     <header class="page-header">
       <div class="heading">
@@ -202,7 +202,7 @@ const publicUrl = computed(() => p.value.status === 'on_sale' && p.value.course_
   </div>
 
   <div v-else class="section container">
-    <NuxtLink to="/admin" class="back-link">← Cursos</NuxtLink>
+    <NuxtLink to="/admin/cursos" class="back-link">← Cursos</NuxtLink>
     <div class="notice notice-warning" role="alert">No se pudo cargar el curso. {{ cmsErrors(loadError).general }}</div>
   </div>
 </template>

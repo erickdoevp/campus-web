@@ -1,98 +1,148 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'admin' })
-useSeoMeta({ title: 'Cursos · Administración', robots: 'noindex' })
+useSeoMeta({ title: 'Resumen · Administración', robots: 'noindex' })
 
-const { data: products, status, error, refresh } = await useFetch<Product[]>('/api/admin/products', {
-  default: () => [],
+const route = useRoute()
+const router = useRouter()
+
+// The period lives in the URL (?desde=&hasta=), so a view can be shared or reloaded.
+const DAY = /^\d{4}-\d{2}-\d{2}$/
+const range = computed({
+  get() {
+    const to = String(route.query.hasta ?? '')
+    const from = String(route.query.desde ?? '')
+    if (DAY.test(from) && DAY.test(to) && from <= to) return { from, to }
+    const today = todayInMexico()
+    return { from: addDays(today, -29), to: today }
+  },
+  set(value) {
+    router.replace({ query: { ...route.query, desde: value.from, hasta: value.to } })
+  },
 })
 
-const filter = ref<ProductStatus | 'all'>('all')
-const filters = computed(() => [
-  { value: 'all' as const, label: 'Todos', count: products.value.length },
-  ...(Object.keys(PRODUCT_STATUS) as ProductStatus[]).map(value => ({
-    value,
-    label: PRODUCT_STATUS[value].label,
-    count: products.value.filter(p => p.status === value).length,
-  })),
-])
-const shown = computed(() => (filter.value === 'all' ? products.value : products.value.filter(p => p.status === filter.value)))
+const { data, status, error, refresh } = await useFetch<SalesStats>('/api/admin/stats', {
+  query: computed(() => range.value),
+})
+// While a new period loads, keep showing the last one (dimmed) instead of flashing.
+const stats = ref(data.value)
+watch(data, (value) => { if (value) stats.value = value })
+const loading = computed(() => status.value === 'pending' && !!stats.value)
 
-const price = (product: Product) => (product.price != null ? formatPrice(Number(product.price), product.currency) : '—')
+const t = computed(() => stats.value!.totals)
+const p = computed(() => stats.value!.previous)
+const periodText = computed(() => {
+  const s = stats.value!
+  return `${shortDay(s.from, true)} – ${shortDay(s.to, true)}`
+})
 </script>
 
 <template>
   <div class="section container">
     <header class="page-header">
       <div>
-        <h1>Cursos</h1>
-        <p class="muted">Crea cursos, ponles precio y decide cuándo salen a la venta.</p>
+        <h1>Resumen</h1>
+        <p v-if="stats" class="muted">{{ periodText }} · hora del centro de México</p>
       </div>
-      <NuxtLink to="/admin/cursos/nuevo" class="btn btn-primary">Nuevo curso</NuxtLink>
     </header>
 
-    <div class="filters" role="group" aria-label="Filtrar por estado">
-      <button
-        v-for="option in filters"
-        :key="option.value"
-        type="button"
-        class="chip"
-        :aria-pressed="filter === option.value"
-        @click="filter = option.value"
-      >
-        {{ option.label }} <span class="count">{{ option.count }}</span>
-      </button>
-    </div>
+    <DateRangeFilter v-model="range" class="filters" />
 
-    <div v-if="error" class="notice notice-warning" role="alert">
-      No se pudieron cargar los cursos. {{ cmsErrors(error).general }}
+    <div v-if="error && !stats" class="notice notice-warning" role="alert">
+      No se pudieron cargar las cifras. {{ cmsErrors(error).general }}
       <button type="button" class="link-button" @click="refresh()">Reintentar</button>
     </div>
 
-    <div v-else-if="status === 'pending'" class="list" aria-busy="true">
-      <div v-for="n in 3" :key="n" class="row skeleton" />
-    </div>
+    <div v-if="stats" class="content" :class="{ loading }" :aria-busy="loading">
+      <div v-if="stats.attention.access_errors" class="alert alert-critical" role="alert">
+        <span class="alert-icon" aria-hidden="true">!</span>
+        <p>
+          <strong>{{ stats.attention.access_errors }} {{ stats.attention.access_errors === 1 ? 'compra pagada no tiene' : 'compras pagadas no tienen' }} acceso al curso</strong>
+          porque Open edX no respondió. Se reintenta solo cada día; puedes reintentarlo ahora.
+        </p>
+        <NuxtLink :to="{ path: '/admin/ventas', query: { acceso: 'error' } }" class="btn btn-secondary">Ver y reintentar</NuxtLink>
+      </div>
 
-    <ul v-else-if="shown.length" class="list">
-      <li v-for="product in shown" :key="product.id">
-        <NuxtLink :to="`/admin/cursos/${product.id}`" class="row">
-          <div class="thumb">
-            <img v-if="product.image" :src="product.image" alt="">
-          </div>
-          <div class="main">
-            <p class="title">{{ product.title }}</p>
-            <p class="key muted">{{ product.course_key ?? `${product.number} · ${product.run}` }}</p>
-          </div>
-          <ProductStatusBadge :status="product.status" />
-          <p class="price">{{ price(product) }}</p>
-          <p class="updated muted">{{ formatDateTime(product.modified) }}</p>
-        </NuxtLink>
-      </li>
-    </ul>
+      <section class="kpis" aria-label="Cifras del periodo">
+        <StatTile
+          class="kpi-hero"
+          hero
+          label="Ventas netas"
+          :value="money(t.net)"
+          :change="percentChange(t.net, p.net)"
+          hint="Lo que entró menos los reembolsos del periodo."
+        />
+        <StatTile label="Entró" :value="money(t.gross)" :change="percentChange(t.gross, p.gross)" />
+        <StatTile
+          label="Reembolsos"
+          :value="money(t.refunds)"
+          :change="percentChange(t.refunds, p.refunds)"
+          :up-is-good="false"
+          :hint="`${t.refunded_orders} ${t.refunded_orders === 1 ? 'orden' : 'órdenes'}`"
+        />
+        <StatTile
+          label="Ventas"
+          :value="String(t.paid_orders)"
+          :change="percentChange(t.paid_orders, p.paid_orders)"
+          :hint="`${t.buyers} ${t.buyers === 1 ? 'comprador' : 'compradores'}`"
+        />
+        <StatTile label="Ticket promedio" :value="money(t.average_order)" />
+      </section>
 
-    <div v-else-if="products.length" class="empty">
-      <p class="muted">No hay cursos en este estado.</p>
-    </div>
+      <SalesChart :points="stats.series" :granularity="stats.granularity" :from="stats.from" :to="stats.to" />
 
-    <div v-else class="empty">
-      <h2>Aún no hay cursos</h2>
-      <p class="muted">Crea el primero: le pones precio e imagen aquí, y los autores arman el contenido en Studio.</p>
-      <NuxtLink to="/admin/cursos/nuevo" class="btn btn-primary">Nuevo curso</NuxtLink>
+      <section class="courses">
+        <div class="section-title">
+          <h2>Por curso</h2>
+          <p v-if="stats.attention.pending" class="muted">
+            <NuxtLink :to="{ path: '/admin/ventas', query: { estado: 'pending' } }">
+              {{ stats.attention.pending }} {{ stats.attention.pending === 1 ? 'orden pendiente' : 'órdenes pendientes' }} de pago
+            </NuxtLink>
+            (OXXO sin pagar o checkouts abiertos)
+          </p>
+        </div>
+
+        <div v-if="stats.courses.length" class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Curso</th>
+                <th scope="col">Estado</th>
+                <th scope="col" class="num">Ventas</th>
+                <th scope="col" class="num">Entró</th>
+                <th scope="col" class="num">Reembolsos</th>
+                <th scope="col" class="num">Neto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="course in stats.courses" :key="course.product_id">
+                <th scope="row">
+                  <NuxtLink :to="`/admin/cursos/${course.product_id}`">{{ course.title }}</NuxtLink>
+                </th>
+                <td><ProductStatusBadge :status="course.status" /></td>
+                <td class="num">{{ course.sold }}</td>
+                <td class="num">{{ money(course.gross) }}</td>
+                <td class="num">
+                  {{ money(course.refunds) }}
+                  <span v-if="course.refunded" class="muted small">({{ course.refunded }})</span>
+                </td>
+                <td class="num strong">{{ money(course.net) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else class="empty muted">Aún no hay cursos a la venta ni ventas en este periodo.</p>
+      </section>
     </div>
   </div>
 </template>
 
 <style scoped>
 .page-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 h1 {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   font-size: clamp(1.8rem, 4vw, 2.4rem);
   letter-spacing: -0.03em;
 }
@@ -102,173 +152,154 @@ h1 {
 }
 
 .filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  border: 1px solid var(--ui-border);
-  border-radius: 999px;
-  background: var(--ui-bg);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--ui-text-highlighted);
-  cursor: pointer;
-}
-
-.chip[aria-pressed='true'] {
-  border-color: var(--ui-primary);
-  background: var(--ui-color-primary-100);
-  color: var(--ui-primary);
-}
-
-.count {
-  font-size: 0.8rem;
-  color: var(--ui-text-muted);
-}
-
-.list {
+.content {
   display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  /* minmax(0, …): the chart measures its width from here, so it must not push it. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  transition: opacity 0.2s;
 }
 
-.row {
+.content.loading {
+  opacity: 0.55;
+}
+
+.kpis {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
-  grid-template-areas:
-    'thumb main status'
-    'thumb price updated';
-  align-items: center;
-  gap: 4px 16px;
-  padding: 12px 16px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--brand-radius);
-  background: var(--ui-bg);
-  color: inherit;
-  text-decoration: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-a.row:hover {
-  border-color: color-mix(in srgb, var(--ui-primary) 30%, transparent);
-  box-shadow: var(--brand-shadow);
-}
-
-a.row:focus-visible {
-  outline: 2px solid var(--ui-primary);
-  outline-offset: 2px;
+.kpi-hero {
+  grid-column: 1 / -1;
 }
 
 @media (min-width: 900px) {
-  .row {
-    grid-template-columns: 88px minmax(0, 1fr) 120px 120px 170px;
-    grid-template-areas: 'thumb main status price updated';
+  .kpis {
+    grid-template-columns: 1.6fr repeat(4, minmax(0, 1fr));
+  }
+
+  .kpi-hero {
+    grid-column: auto;
   }
 }
 
-.thumb {
-  grid-area: thumb;
-  aspect-ratio: 16 / 9;
-  border-radius: 6px;
-  overflow: hidden;
-  background: linear-gradient(135deg, var(--ui-color-primary-100), var(--ui-color-primary-50));
+.alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 14px 18px;
+  border-radius: var(--brand-radius-sm);
 }
 
-.thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.main {
-  grid-area: main;
+.alert p {
+  flex: 1 1 220px;
   min-width: 0;
+  margin: 0;
 }
 
-.title {
+.alert-critical {
+  border: 1px solid color-mix(in srgb, var(--ui-color-error-500) 35%, transparent);
+  background: var(--ui-color-error-50);
+  color: var(--ui-color-error-800);
+}
+
+.alert-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ui-color-error-600);
+  color: var(--ui-text-inverted);
+  font-weight: 700;
+}
+
+.alert .btn {
+  padding: 8px 16px;
+}
+
+.section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.section-title h2 {
   margin: 0;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 1.15rem;
+}
+
+.section-title p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--brand-radius);
+  background: var(--ui-bg);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+th,
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--ui-border);
+  text-align: left;
   white-space: nowrap;
 }
 
-.key {
-  margin: 0;
-  font-size: 0.85rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+tbody tr:last-child > * {
+  border-bottom: 0;
 }
 
-.row > .status {
-  grid-area: status;
-  justify-self: start;
-}
-
-.price {
-  grid-area: price;
-  margin: 0;
+thead th {
+  font-size: 0.82rem;
   font-weight: 600;
+  color: var(--ui-text-muted);
+}
+
+tbody th {
+  font-weight: 500;
+}
+
+tbody th a {
+  color: var(--ui-text-highlighted);
+}
+
+.num {
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.updated {
-  grid-area: updated;
-  margin: 0;
-  font-size: 0.85rem;
+.strong {
+  font-weight: 650;
 }
 
-@media (max-width: 899px) {
-  .row > .status,
-  .updated {
-    justify-self: end;
-  }
-}
-
-.skeleton {
-  height: 74px;
-  background: linear-gradient(90deg, var(--ui-bg) 25%, var(--ui-bg-muted) 50%, var(--ui-bg) 75%);
-  background-size: 200% 100%;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .skeleton {
-    animation: shimmer 1.4s infinite;
-  }
-}
-
-@keyframes shimmer {
-  to {
-    background-position: -200% 0;
-  }
+.small {
+  font-size: 0.8rem;
 }
 
 .empty {
-  padding: 48px 24px;
+  padding: 32px;
   text-align: center;
   border: 1px dashed var(--ui-border-accented);
   border-radius: var(--brand-radius);
-}
-
-.empty h2 {
-  margin: 0 0 8px;
-  font-size: 1.3rem;
-}
-
-.empty p {
-  margin: 0 auto 20px;
-  max-width: 48ch;
 }
 
 .link-button {

@@ -33,7 +33,7 @@ async function create(input: ProductInput, image: File | null) {
 
 <template>
   <div class="section container narrow">
-    <NuxtLink to="/admin" class="back-link">← Cursos</NuxtLink>
+    <NuxtLink to="/admin/cursos" class="back-link">← Cursos</NuxtLink>
     <h1>Nuevo curso</h1>
     <p class="muted lead">
       Se guarda como borrador. Después lo creas en Open edX para que los autores armen el contenido, y lo pones a la venta cuando esté listo.

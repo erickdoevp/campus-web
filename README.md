@@ -37,9 +37,14 @@ its collection in `content.config.ts`.
 
 ## Admin area (`/admin`)
 
-For contadores: create courses, set their price and image, create them in
-Open edX and put them on sale. The data lives in the Campus CMS (`campus-cms`);
-the browser only talks to this site.
+For contadores. The data lives in the Campus CMS (`campus-cms`); the browser
+only talks to this site.
+
+| Page | What it's for |
+|---|---|
+| `/admin` | Summary for a period (`?desde=&hasta=`): net sales, money in, refunds, sales, average ticket (vs the previous period), net sales per day/week, figures per course, and alerts for purchases whose access failed |
+| `/admin/cursos` | Create courses, set price and image, create them in Open edX and put them on sale |
+| `/admin/ventas` | Every order with its payment and access state (filters in the URL: `?estado=&acceso=&q=`); retry an access that failed |
 
 | Piece | What it does |
 |---|---|
