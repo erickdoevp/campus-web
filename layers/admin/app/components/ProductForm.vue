@@ -139,11 +139,11 @@ watch(() => props.errors, async (errors) => {
         <label for="price">Precio (MXN)</label>
         <div class="price-input">
           <span aria-hidden="true">$</span>
-          <input id="price" v-model="form.price" type="number" inputmode="numeric" min="0" step="1" placeholder="1499"
+          <input id="price" v-model="form.price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="1499"
                  :aria-invalid="!!fieldError('price')">
         </div>
         <p v-if="fieldError('price')" class="error">{{ fieldError('price') }}</p>
-        <p v-else class="hint muted">Pesos enteros, pago único.</p>
+        <p v-else class="hint muted">Pago único. Puede llevar centavos.</p>
       </div>
 
       <div class="field">

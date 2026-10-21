@@ -14,10 +14,11 @@ useSeoMeta({
   ogImage: course.value.image ?? undefined,
 })
 
-// The LMS handles login, creates the order and redirects to Stripe.
-// If the user already owns the course it sends them straight into it.
-const buyUrl = `${config.public.lmsUrl}/payments/buy/${encodeURIComponent(id)}/`
+// Our /comprar route handles login, asks the CMS for a Stripe checkout and
+// redirects there. If the user already owns the course it sends them into it.
+const buyUrl = `/comprar/${encodeURIComponent(id)}`
 const cancelled = computed(() => route.query.payment === 'cancelled')
+const unavailable = computed(() => route.query.payment === 'unavailable')
 
 const user = useEdxUser()
 const { data: ownership, refresh: refreshOwnership } = await useFetch(`/api/courses/${encodeURIComponent(id)}/owned`, {
@@ -85,6 +86,9 @@ const showBuyBar = computed(() => !cardVisible.value && !owned.value && course.v
           <img v-if="course.image" :src="course.image" alt="">
         </div>
         <div class="purchase-body">
+          <div v-if="unavailable" class="notice notice-warning" role="status">
+            No se pudo iniciar el pago. Intenta de nuevo en un momento.
+          </div>
           <div v-if="cancelled" class="notice notice-warning" role="status">
             El pago se canceló. Puedes intentarlo de nuevo cuando quieras.
           </div>

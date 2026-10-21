@@ -1,5 +1,6 @@
 /**
- * Keeps the LMS JWT fresh for the admin area.
+ * Keeps the LMS JWT fresh where the site calls the CMS as the user: the admin
+ * area and the purchase route.
  *
  * The JWT cookies expire after an hour while the LMS session lives on. When
  * they're gone but the session isn't, ask the LMS for new ones
@@ -9,9 +10,11 @@
  */
 import { JWT_HEADER_PAYLOAD_COOKIE, JWT_SIGNATURE_COOKIE, edxJwt } from '../utils/cms'
 
+const JWT_PATHS = ['/admin', '/api/admin', '/comprar/']
+
 export default defineEventHandler(async (event) => {
   const path = event.path
-  if (!path.startsWith('/admin') && !path.startsWith('/api/admin')) return
+  if (!JWT_PATHS.some(prefix => path.startsWith(prefix))) return
   if (edxJwt(event) || getCookie(event, 'edxloggedin') !== 'true') return
 
   const cookie = getRequestHeader(event, 'cookie') ?? ''
