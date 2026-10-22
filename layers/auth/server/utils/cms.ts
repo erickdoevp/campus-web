@@ -20,9 +20,12 @@ export function cmsUrl(path: string) {
   return `${useRuntimeConfig().campusCmsUrl.replace(/\/$/, '')}${path}`
 }
 
+const TIMEOUT_MS = 15_000
+
 /**
  * Calls the CMS with the user's JWT and returns the raw response, so callers
- * can pass status and body through. Without a JWT it answers 401 itself.
+ * can pass status and body through. Without a JWT it answers 401 itself; if
+ * the CMS is down or doesn't answer in time, 503 (never a hang or a throw).
  */
 export async function cmsRequest(event: H3Event, path: string, init: RequestInit = {}): Promise<Response> {
   const jwt = edxJwt(event)
@@ -32,5 +35,11 @@ export async function cmsRequest(event: H3Event, path: string, init: RequestInit
   const headers = new Headers(init.headers)
   headers.set('authorization', `JWT ${jwt}`)
   headers.set('accept', 'application/json')
-  return fetch(cmsUrl(path), { ...init, headers })
+  try {
+    return await fetch(cmsUrl(path), { ...init, headers, signal: AbortSignal.timeout(TIMEOUT_MS) })
+  }
+  catch (error) {
+    console.error(`[cms] ${init.method ?? 'GET'} ${path} failed:`, error)
+    return Response.json({ detail: 'El CMS no responde. Intenta de nuevo en unos minutos.' }, { status: 503 })
+  }
 }
