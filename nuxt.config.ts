@@ -22,11 +22,18 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Used by the Nuxt server to call Open edX APIs.
     openedxLmsUrl: 'http://local.openedx.io:8000',
+    // Used by the admin area's server routes to author courses.
+    openedxStudioUrl: 'http://studio.local.openedx.io:8001',
+    // Where uploaded videos are stored, and the public URL they are served
+    // from (empty: this site's /media/videos).
+    adminVideoDir: '.data/videos',
+    adminVideoBaseUrl: '',
     public: {
       // Used in links the browser follows.
       lmsUrl: 'http://local.openedx.io:8000',
       learnerDashboardUrl: 'http://apps.local.openedx.io:1996/learner-dashboard/',
       learningMfeUrl: 'http://apps.local.openedx.io:2000/learning',
+      studioUrl: 'http://studio.local.openedx.io:8001',
     },
   },
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const user = useEdxUser()
+const isStaff = useEdxStaff()
 const config = useRuntimeConfig()
 const requestUrl = useRequestURL()
 
@@ -29,6 +30,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
 
           <div class="nav-account">
             <template v-if="user">
+              <NuxtLink v-if="isStaff" to="/admin" class="account-link">Administración</NuxtLink>
               <a :href="config.public.learnerDashboardUrl" class="btn btn-secondary">Mis cursos</a>
               <a :href="user.header_urls.account_settings" class="account-link" :title="user.email">
                 {{ user.username }}
