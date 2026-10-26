@@ -33,7 +33,8 @@ its collection in `content.config.ts`.
 | Login / logout | Links to the LMS with `?next=` / `?redirect_url=` back to this site (the plugin's Tutor config whitelists it). |
 | LMS course "About" pages | The plugin redirects them here (`/cursos/{course_id}`). |
 | Admin area (`/admin`) | Server routes join the LMS JWT cookies into an `Authorization: JWT` header and call Studio (courses, outline, video components, details) and the LMS (`verified` course mode = price). Open edX checks the token and the user's permissions on every call; only staff users (`is_staff`) get in. |
-| Videos | Uploaded to this server's disk (`NUXT_ADMIN_VIDEO_DIR`) and added to the lesson as an Open edX video component pointing at `/media/videos/{file}`. YouTube links and external MP4 URLs work too. New or edited content is a draft until "Publicar cambios". |
+| Videos | Uploaded to this server's disk (`NUXT_ADMIN_VIDEO_DIR`, one folder per course) and added to the lesson as an Open edX video component pointing at `/media/videos/{file}`. YouTube links and external MP4 URLs work too. New or edited content is a draft until "Publicar cambios". |
+| Deleting a course | `DELETE /api/admin/courses/{id}` calls the `openedx-course-payments` endpoints in Studio (content) and the LMS (enrollments, progress, grades, certificates, price, roles), then deletes the course's video folder and the cached catalog. Payment orders are kept. |
 
 ## Development
 
@@ -86,4 +87,4 @@ Defaults in `nuxt.config.ts` target the Tutor dev stack. Override per environmen
 ## Pending
 
 - Contact form only logs messages (`layers/contact/server/api/contact.post.ts`); connect an e-mail provider.
-- Uploaded videos live on the Nuxt server's disk: back up `.data/videos`, or move them to object storage (S3) and set `NUXT_ADMIN_VIDEO_BASE_URL` for production. Files of deleted videos are kept, since published content may still use them.
+- Uploaded videos live on the Nuxt server's disk: back up `.data/videos`, or move them to object storage (S3) and set `NUXT_ADMIN_VIDEO_BASE_URL` for production. Files of deleted videos are kept until the course is deleted, since published content may still use them.

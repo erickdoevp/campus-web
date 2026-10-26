@@ -95,7 +95,10 @@ const studioCourseUrl = `${config.public.studioUrl}/course/${id}`
 
       <div :id="`panel-${tab}`" role="tabpanel" :aria-labelledby="`tab-${tab}`" class="rise" style="--i: 3">
         <AdminCourseContent v-if="tab === 'contenido'" :course="course" @changed="refresh()" />
-        <AdminCourseInfo v-else-if="tab === 'informacion'" :course="course" @saved="updated => course = updated" />
+        <template v-else-if="tab === 'informacion'">
+          <AdminCourseInfo :course="course" @saved="updated => course = updated" />
+          <AdminCourseDelete :course="course" />
+        </template>
         <AdminCourseSale v-else :course="course" @saved="refresh()" />
       </div>
     </template>

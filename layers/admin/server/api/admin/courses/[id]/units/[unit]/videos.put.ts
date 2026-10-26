@@ -12,7 +12,7 @@ export default defineEventHandler(async (event): Promise<AdminVideo> => {
   await getBlock(event, courseId, unitId)
 
   const contentType = (getRequestHeader(event, 'content-type') ?? '').split(';')[0]!.trim()
-  const file = await storeVideo(event, contentType)
+  const file = await storeVideo(event, courseId, contentType)
   try {
     return await createVideo(event, courseId, unitId, title, { url: videoUrl(event, file) })
   }

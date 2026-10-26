@@ -9,11 +9,14 @@ import { join } from 'node:path'
 const CONTENT_TYPES: Record<string, string> = { mp4: 'video/mp4', webm: 'video/webm', ogv: 'video/ogg' }
 
 export default defineEventHandler(async (event) => {
-  const file = getRouterParam(event, 'file') ?? ''
-  if (!VIDEO_FILE.test(file)) {
+  // "{course folder}/{file}", or just "{file}" for uploads made before
+  // videos were kept per course.
+  const segments = (getRouterParam(event, 'path') ?? '').split('/')
+  const file = segments.pop() ?? ''
+  if (!VIDEO_FILE.test(file) || segments.length > 1 || (segments[0] && !VIDEO_FOLDER.test(segments[0]))) {
     throw createError({ statusCode: 404, statusMessage: 'Video no encontrado' })
   }
-  const path = join(videoDir(), file)
+  const path = join(videoDir(), ...segments, file)
   let size: number
   try {
     size = (await stat(path)).size
