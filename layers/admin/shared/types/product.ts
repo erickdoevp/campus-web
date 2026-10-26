@@ -34,4 +34,6 @@ export interface CmsMe {
   username: string
   email: string
   is_contador: boolean
+  /** Open edX organization of the courses the CMS creates or adopts. */
+  course_org: string
 }

@@ -18,7 +18,7 @@ feature (pages, components, composables, utils, server routes, shared types).
 | `layers/courses` | Catalog and course pages, `CourseCard`, `/api/courses` routes, catalog client (`server/utils/catalog.ts`: CMS + LMS), `CourseSummary`/`CourseDetail` types. |
 | `layers/events` | Events pages, `EventCard`, date helpers for Nuxt Content. |
 | `layers/contact` | `POST /api/contact`. |
-| `layers/admin` | Admin area for contadores (`/admin`): courses, prices and sale status, backed by the Campus CMS through `/api/admin/*`. |
+| `layers/admin` | Admin area for contadores (`/admin`): courses, prices and sale status, backed by the Campus CMS through `/api/admin/*`; course content (outline, videos, evaluations) edited in Studio through `/api/admin/content/*`. Uploaded videos are served from `/media/videos`. |
 
 Auto-imports work across layers, so a feature can use another's components,
 composables and utils without imports. Event Markdown stays in `content/` with
@@ -43,7 +43,8 @@ only talks to this site.
 | Page | What it's for |
 |---|---|
 | `/admin` | Summary for a period (`?desde=&hasta=`): net sales, money in, refunds, sales, average ticket (vs the previous period), net sales per day/week, figures per course, and alerts for purchases whose access failed |
-| `/admin/cursos` | Create courses, set price and image, create them in Open edX and put them on sale |
+| `/admin/cursos` | Course list; `/admin/cursos/nuevo` creates a course in Open edX or takes an existing one |
+| `/admin/cursos/{id}` | Tabs: *Contenido* (outline: modules, lessons, videos, evaluations, lesson grading; publish), *Información* (cover, name, descriptions; dates and authors until it exists in Open edX) and *Precio y venta* (price, create in Open edX, put on sale, withdraw, archive) |
 | `/admin/ventas` | Every order with its payment and access state (filters in the URL: `?estado=&acceso=&q=`); retry an access that failed |
 
 | Piece | What it does |
@@ -51,6 +52,35 @@ only talks to this site.
 | `server/api/admin/[...path].ts` | Proxies `/api/admin/*` to the CMS `/api/v1/*` (only the routes the admin uses), sending the user's LMS JWT as `Authorization: JWT …`, joined from the `edx-jwt-cookie-header-payload` + `edx-jwt-cookie-signature` cookies. Writes must come from this site's `Origin`. |
 | `layers/auth/server/middleware/edx-jwt.ts` | The JWT cookies last an hour, the LMS session longer: on `/admin`, `/api/admin` and `/comprar` requests without them, it calls the LMS `POST /login_refresh` with the session cookie and passes the new cookies on. |
 | `app/middleware/admin.ts` | Anonymous users go to the LMS login and come back; users without the Contador role get a 403. The CMS checks the role on every call too. |
+
+### Course content (the "Contenido" tab)
+
+Once the course exists in Open edX, its content is edited here and stored in
+Open edX: module = section, lesson = subsection, and each lesson keeps its
+videos and evaluations in a unit. The calls go to Studio **as the logged-in
+user** (`layers/admin/server/utils/studio.ts`), so Studio decides: staff, or
+someone on the course team. The authors set when the course is created get the
+instructor role; the new-course form puts the current user there. Without it,
+Studio answers 403 and the page says to be added as an author.
+
+| Piece | What it does |
+|---|---|
+| `/api/admin/content/{course}` | Outline and the course's assignment types (Studio → Calificación); `blocks` to add, rename, delete; `publish` |
+| `/api/admin/content/{course}/units/{unit}/videos` | `PUT` uploads a file (MP4/WebM/Ogg, 2 GB) to `NUXT_ADMIN_VIDEO_DIR`; `POST` adds a YouTube link or a video URL |
+| `/api/admin/content/{course}/units/{unit}/evaluations` | Adds an evaluation; `/evaluations/{block}` saves one |
+| `PATCH …/blocks/{lesson}` with `grading` | Whether a lesson counts for the grade (assignment type) and its deadline |
+| `/api/admin/studio/courses` | The user's Open edX courses, to take one into the CMS |
+
+New and edited content is a draft until "Publicar cambios".
+
+**Evaluations.** Campus writes and edits the five basic Open edX problem types
+as OLX (`shared/utils/evaluation.ts`): multiple choice, checkboxes, dropdown,
+numerical input (with tolerance) and text input (several accepted answers),
+each with an optional explanation, points, attempts and when the answer is
+shown. Drag and drop, open response (ORA), math expression, image hotspot and
+Python-graded problems are created here with Studio's defaults and finished in
+Studio ("Editar en Studio"). A problem Campus can't edit without losing
+something (hints, descriptions, several questions...) also opens in Studio.
 
 The role is given in the CMS:
 `make tutor ARGS="dev exec campus-cms python manage.py contador <username>"`.
@@ -103,7 +133,11 @@ Defaults in `nuxt.config.ts` target the Tutor dev stack. Override per environmen
 | `NUXT_PUBLIC_LMS_URL` | LMS URL used in browser links |
 | `NUXT_PUBLIC_LEARNER_DASHBOARD_URL` | "Mis cursos" link |
 | `NUXT_PUBLIC_LEARNING_MFE_URL` | Learning MFE base URL |
+| `NUXT_OPENEDX_STUDIO_URL` | Studio URL used by the Nuxt server (course content) |
+| `NUXT_ADMIN_VIDEO_DIR` | Where uploaded videos are stored (default `.data/videos`) |
+| `NUXT_ADMIN_VIDEO_BASE_URL` | Public URL of that folder if served elsewhere (default: this site's `/media/videos`) |
 
 ## Pending
 
 - Contact form only logs messages (`layers/contact/server/api/contact.post.ts`); connect an e-mail provider.
+- Uploaded videos live on the Nuxt server's disk: back up `.data/videos`, or move them to object storage (S3) and set `NUXT_ADMIN_VIDEO_BASE_URL` for production. Files of deleted videos are kept, since published content may still use them.
