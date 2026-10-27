@@ -1,6 +1,6 @@
 /**
- * Keeps the LMS JWT fresh where the site calls the CMS as the user: the admin
- * area and the purchase route.
+ * Keeps the LMS JWT fresh where the site calls the CMS or Studio as the user:
+ * the admin area and the purchase route.
  *
  * The JWT cookies expire after an hour while the LMS session lives on. When
  * they're gone but the session isn't, ask the LMS for new ones
@@ -15,7 +15,11 @@ const JWT_PATHS = ['/admin', '/api/admin', '/comprar/']
 export default defineEventHandler(async (event) => {
   const path = event.path
   if (!JWT_PATHS.some(prefix => path.startsWith(prefix))) return
-  if (edxJwt(event) || getCookie(event, 'edxloggedin') !== 'true') return
+  if (getCookie(event, 'edxloggedin') !== 'true') return
+  const jwt = edxJwt(event)
+  const claims = jwt ? decodeJwtClaims(jwt) : null
+  // Refresh early too: a video upload must outlive the token it started with.
+  if (claims && claims.exp * 1000 > Date.now() + 15 * 60_000) return
 
   const cookie = getRequestHeader(event, 'cookie') ?? ''
   const lms = useRuntimeConfig().openedxLmsUrl.replace(/\/$/, '')
@@ -38,7 +42,10 @@ export default defineEventHandler(async (event) => {
     }
   }
   if (refreshed.length) {
-    // Visible to getCookie() and to requests forwarded from this one.
-    event.node.req.headers.cookie = [cookie, ...refreshed].filter(Boolean).join('; ')
+    // Visible to getCookie() and to requests forwarded from this one; the
+    // new cookies replace the old ones when it was an early refresh.
+    const names = new Set(refreshed.map(pair => pair.slice(0, pair.indexOf('='))))
+    const kept = cookie.split(/;\s*/).filter(c => c && !names.has(c.slice(0, c.indexOf('='))))
+    event.node.req.headers.cookie = [...kept, ...refreshed].join('; ')
   }
 })
