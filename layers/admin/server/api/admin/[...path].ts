@@ -3,6 +3,8 @@
  * admin uses are forwarded; status codes and error bodies pass through as-is.
  */
 const ALLOWED = /^(me|stats|products(\/\d+(\/(image|create-course|put-on-sale|withdraw|archive))?)?|orders(\/\d+(\/retry-access)?)?)$/
+// These make the CMS write to Open edX, which can take a while (Studio republishes the course).
+const OPEN_EDX_WRITES = /\/(image|create-course|retry-access)$/
 
 export default defineEventHandler(async (event) => {
   const path = getRouterParam(event, 'path') ?? ''
@@ -22,12 +24,13 @@ export default defineEventHandler(async (event) => {
 
   const query = getRequestURL(event).search
   const contentType = getRequestHeader(event, 'content-type')
+  // Raw bytes, so multipart image uploads keep their boundary.
+  const raw = method === 'GET' || method === 'HEAD' ? undefined : await readRawBody(event, false)
   const response = await cmsRequest(event, `/api/v1/${path}/${query}`, {
     method,
     headers: contentType ? { 'content-type': contentType } : undefined,
-    // Raw bytes, so multipart image uploads keep their boundary.
-    body: method === 'GET' || method === 'HEAD' ? undefined : await readRawBody(event, false),
-  })
+    body: raw && new Uint8Array(raw),
+  }, OPEN_EDX_WRITES.test(path) ? 120_000 : undefined)
 
   if (response.ok && method !== 'GET' && method !== 'HEAD' && path.startsWith('products')) {
     // Price, image, copy or sale status may have changed: the catalog must not wait for its cache.

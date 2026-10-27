@@ -24,6 +24,12 @@ export default defineNuxtConfig({
     openedxLmsUrl: 'http://local.openedx.io:8000',
     // Campus CMS (courses, prices, sales), called by the admin area's server routes.
     campusCmsUrl: 'http://campus-cms.local.openedx.io:8010',
+    // Studio, called by the admin area's server routes to edit course content.
+    openedxStudioUrl: 'http://studio.local.openedx.io:8001',
+    // Where uploaded videos are stored, and the public URL they are served
+    // from (empty: this site's /media/videos).
+    adminVideoDir: '.data/videos',
+    adminVideoBaseUrl: '',
     public: {
       // Used in links the browser follows.
       lmsUrl: 'http://local.openedx.io:8000',

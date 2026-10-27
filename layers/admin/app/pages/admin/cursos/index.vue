@@ -2,10 +2,9 @@
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 useSeoMeta({ title: 'Cursos · Administración', robots: 'noindex' })
 
-const { data: products, status, error, refresh } = await useFetch<Product[]>('/api/admin/products', {
-  default: () => [],
-})
+const { data: products, status, error, refresh } = await useFetch<Product[]>('/api/admin/products', { default: () => [] })
 
+const search = ref('')
 const filter = ref<ProductStatus | 'all'>('all')
 const filters = computed(() => [
   { value: 'all' as const, label: 'Todos', count: products.value.length },
@@ -15,97 +14,117 @@ const filters = computed(() => [
     count: products.value.filter(p => p.status === value).length,
   })),
 ])
-const shown = computed(() => (filter.value === 'all' ? products.value : products.value.filter(p => p.status === filter.value)))
 
-const price = (product: Product) => (product.price != null ? formatPrice(Number(product.price), product.currency) : '—')
+const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const filtered = computed(() => {
+  const term = normalize(search.value.trim())
+  return products.value.filter(p =>
+    (filter.value === 'all' || p.status === filter.value)
+    && (!term || normalize(`${p.title} ${p.org} ${p.number} ${p.run}`).includes(term)))
+})
+const narrowed = computed(() => !!search.value.trim() || filter.value !== 'all')
 </script>
 
 <template>
   <div class="section container">
-    <header class="page-header">
+    <header class="admin-header rise">
       <div>
+        <p class="eyebrow">Administración</p>
         <h1>Cursos</h1>
-        <p class="muted">Crea cursos, ponles precio y decide cuándo salen a la venta.</p>
+        <p class="muted lead">Crea cursos, organiza sus módulos y lecciones, sube los videos, agrega evaluaciones y define el precio.</p>
       </div>
       <NuxtLink to="/admin/cursos/nuevo" class="btn btn-primary">Nuevo curso</NuxtLink>
     </header>
 
-    <div class="filters" role="group" aria-label="Filtrar por estado">
-      <button
-        v-for="option in filters"
-        :key="option.value"
-        type="button"
-        class="chip"
-        :aria-pressed="filter === option.value"
-        @click="filter = option.value"
-      >
-        {{ option.label }} <span class="count">{{ option.count }}</span>
-      </button>
-    </div>
-
-    <div v-if="error" class="notice notice-warning" role="alert">
-      No se pudieron cargar los cursos. {{ cmsErrors(error).general }}
+    <div v-if="error" class="notice notice-error" role="alert">
+      No pudimos cargar los cursos. {{ cmsErrors(error).general }}
       <button type="button" class="link-button" @click="refresh()">Reintentar</button>
     </div>
 
-    <div v-else-if="status === 'pending'" class="list" aria-busy="true">
-      <div v-for="n in 3" :key="n" class="row skeleton" />
-    </div>
+    <template v-else>
+      <div v-if="products.length" class="toolbar rise" style="--i: 1">
+        <div class="search">
+          <label for="search">Buscar</label>
+          <input id="search" v-model="search" type="search" placeholder="Nombre, código o periodo" autocomplete="off">
+        </div>
+        <div class="filters" role="group" aria-label="Filtrar por estado">
+          <button
+            v-for="option in filters"
+            :key="option.value"
+            type="button"
+            class="chip"
+            :aria-pressed="filter === option.value"
+            @click="filter = option.value"
+          >
+            {{ option.label }} <span class="chip-count">{{ option.count }}</span>
+          </button>
+        </div>
+        <p class="muted count" aria-live="polite">
+          {{ narrowed ? `${filtered.length} de ${products.length}` : products.length }} cursos
+        </p>
+      </div>
 
-    <ul v-else-if="shown.length" class="list">
-      <li v-for="product in shown" :key="product.id">
-        <NuxtLink :to="`/admin/cursos/${product.id}`" class="row">
-          <div class="thumb">
-            <img v-if="product.image" :src="product.image" alt="">
-          </div>
-          <div class="main">
-            <p class="title">{{ product.title }}</p>
-            <p class="key muted">{{ product.course_key ?? `${product.number} · ${product.run}` }}</p>
-          </div>
-          <ProductStatusBadge :status="product.status" />
-          <p class="price">{{ price(product) }}</p>
-          <p class="updated muted">{{ formatDateTime(product.modified) }}</p>
-        </NuxtLink>
-      </li>
-    </ul>
+      <div v-if="status === 'pending' && !products.length" class="skeleton" aria-busy="true" />
 
-    <div v-else-if="products.length" class="empty">
-      <p class="muted">No hay cursos en este estado.</p>
-    </div>
+      <ul v-else-if="filtered.length" class="rows rise" style="--i: 2">
+        <li v-for="product in filtered" :key="product.id">
+          <NuxtLink :to="`/admin/cursos/${product.id}`" class="row">
+            <span class="row-mark" aria-hidden="true">
+              <img v-if="product.image" :src="product.image" alt="">
+              <template v-else>{{ product.title.slice(0, 2) }}</template>
+            </span>
+            <span class="row-main">
+              <span class="row-title">{{ product.title }}</span>
+              <span class="muted row-meta">{{ product.course_key ?? `${product.org} / ${product.number} / ${product.run}` }}</span>
+            </span>
+            <span class="row-side">
+              <ProductStatusBadge :status="product.status" />
+              <span v-if="product.price != null && Number(product.price) > 0" class="row-price">{{ formatPrice(Number(product.price), product.currency) }}</span>
+              <span v-else class="badge badge-muted">Sin precio</span>
+            </span>
+            <span class="row-arrow" aria-hidden="true">→</span>
+          </NuxtLink>
+        </li>
+      </ul>
 
-    <div v-else class="empty">
-      <h2>Aún no hay cursos</h2>
-      <p class="muted">Crea el primero: le pones precio e imagen aquí, y los autores arman el contenido en Studio.</p>
-      <NuxtLink to="/admin/cursos/nuevo" class="btn btn-primary">Nuevo curso</NuxtLink>
-    </div>
+      <div v-else-if="narrowed" class="empty">
+        <h2>Sin resultados</h2>
+        <p class="muted">Ningún curso coincide con la búsqueda o el filtro.</p>
+        <button type="button" class="btn btn-secondary" @click="search = ''; filter = 'all'">Ver todos</button>
+      </div>
+
+      <div v-else class="empty">
+        <h2>Todavía no hay cursos</h2>
+        <p class="muted">Crea el primero o toma uno que ya exista en Open edX: después podrás agregar módulos, lecciones, videos y evaluaciones.</p>
+        <NuxtLink to="/admin/cursos/nuevo" class="btn btn-primary">Crear curso</NuxtLink>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.page-header {
+.toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  padding-bottom: 20px;
 }
 
-h1 {
-  margin: 0 0 6px;
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  letter-spacing: -0.03em;
+.search {
+  flex: 1 1 320px;
+  max-width: 420px;
 }
 
-.page-header p {
-  margin: 0;
+.search label {
+  font-size: 0.9rem;
 }
 
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 20px;
 }
 
 .chip {
@@ -117,148 +136,158 @@ h1 {
   border-radius: 999px;
   background: var(--ui-bg);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--ui-text-highlighted);
   cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.chip:hover {
+  border-color: var(--ui-text-highlighted);
 }
 
 .chip[aria-pressed='true'] {
-  border-color: var(--ui-primary);
-  background: var(--ui-color-primary-100);
-  color: var(--ui-primary);
+  background: var(--ui-text-highlighted);
+  border-color: var(--ui-text-highlighted);
+  color: var(--ui-text-inverted);
 }
 
-.count {
-  font-size: 0.8rem;
-  color: var(--ui-text-muted);
-}
-
-.list {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
-  grid-template-areas:
-    'thumb main status'
-    'thumb price updated';
-  align-items: center;
-  gap: 4px 16px;
-  padding: 12px 16px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--brand-radius);
-  background: var(--ui-bg);
-  color: inherit;
-  text-decoration: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-a.row:hover {
-  border-color: color-mix(in srgb, var(--ui-primary) 30%, transparent);
-  box-shadow: var(--brand-shadow);
-}
-
-a.row:focus-visible {
+.chip:focus-visible {
   outline: 2px solid var(--ui-primary);
   outline-offset: 2px;
 }
 
-@media (min-width: 900px) {
-  .row {
-    grid-template-columns: 88px minmax(0, 1fr) 120px 120px 170px;
-    grid-template-areas: 'thumb main status price updated';
-  }
+.chip-count {
+  font-size: 0.78rem;
+  opacity: 0.7;
 }
 
-.thumb {
-  grid-area: thumb;
-  aspect-ratio: 16 / 9;
-  border-radius: 6px;
+.count {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--brand-radius);
   overflow: hidden;
-  background: linear-gradient(135deg, var(--ui-color-primary-100), var(--ui-color-primary-50));
 }
 
-.thumb img {
+.rows li + li {
+  border-top: 1px solid var(--ui-border);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 16px 18px;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.row:hover {
+  background: var(--ui-color-primary-50);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: -2px;
+}
+
+.row-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: var(--brand-radius-sm);
+  background: linear-gradient(135deg, var(--ui-color-primary-100), var(--ui-color-primary-50));
+  color: var(--ui-primary);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.row-mark img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.main {
-  grid-area: main;
+.row-main {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
-.title {
-  margin: 0;
+.row-title {
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.key {
-  margin: 0;
-  font-size: 0.85rem;
+.row-meta {
+  font-size: 0.88rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.row > .status {
-  grid-area: status;
-  justify-self: start;
+.row-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 14px;
 }
 
-.price {
-  grid-area: price;
-  margin: 0;
-  font-weight: 600;
+.row-price {
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.updated {
-  grid-area: updated;
-  margin: 0;
-  font-size: 0.85rem;
+.row-arrow {
+  display: none;
 }
 
-@media (max-width: 899px) {
-  .row > .status,
-  .updated {
-    justify-self: end;
+@media (min-width: 768px) {
+  .row {
+    grid-template-columns: 44px minmax(0, 1fr) auto 24px;
+    padding: 18px 24px;
+  }
+
+  .row-arrow {
+    display: block;
+    color: var(--ui-text-muted);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s;
+  }
+
+  .row:hover .row-arrow {
+    color: var(--ui-primary);
+    transform: translateX(4px);
   }
 }
 
 .skeleton {
-  height: 74px;
-  background: linear-gradient(90deg, var(--ui-bg) 25%, var(--ui-bg-muted) 50%, var(--ui-bg) 75%);
-  background-size: 200% 100%;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .skeleton {
-    animation: shimmer 1.4s infinite;
-  }
-}
-
-@keyframes shimmer {
-  to {
-    background-position: -200% 0;
-  }
+  height: 240px;
+  border-radius: var(--brand-radius);
+  background: linear-gradient(100deg, var(--ui-border) 30%, var(--ui-bg) 50%, var(--ui-border) 70%);
+  background-size: 300% 100%;
 }
 
 .empty {
-  padding: 48px 24px;
-  text-align: center;
-  border: 1px dashed var(--ui-border-accented);
+  padding: 56px 24px;
+  border: 1px dashed var(--ui-border);
   border-radius: var(--brand-radius);
+  text-align: center;
 }
 
 .empty h2 {
@@ -267,18 +296,7 @@ a.row:focus-visible {
 }
 
 .empty p {
-  margin: 0 auto 20px;
+  margin: 0 auto 24px;
   max-width: 48ch;
-}
-
-.link-button {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-weight: 600;
-  color: inherit;
-  text-decoration: underline;
-  cursor: pointer;
 }
 </style>
