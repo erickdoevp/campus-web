@@ -1,0 +1,4 @@
+<!-- Temporary logo, used by this site and by the Open edX MFE headers. Replace it with the real one. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="28" viewBox="0 0 96 28">
+  <text x="0" y="21" fill="#fff" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="-0.4">Campus</text>
+</svg>

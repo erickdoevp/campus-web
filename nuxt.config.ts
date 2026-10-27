@@ -29,6 +29,8 @@ export default defineNuxtConfig({
       lmsUrl: 'http://local.openedx.io:8000',
       studioUrl: 'http://studio.local.openedx.io:8001',
       learnerDashboardUrl: 'http://apps.local.openedx.io:1996/learner-dashboard/',
+      // The LMS's PROFILE_MICROFRONTEND_URL; the username is appended to it.
+      profileUrl: 'http://apps.local.openedx.io:1995/profile/u/',
       learningMfeUrl: 'http://apps.local.openedx.io:2000/learning',
     },
   },
